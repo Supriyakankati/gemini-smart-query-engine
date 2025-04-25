@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Gemini AI Assistant</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+    }
+    #responseBox {
+      border: 1px solid #ccc;
+      padding: 15px;
+      width: 60%;
+      background-color: #f9f9f9;
+      margin-top: 20px;
+    }
+    a {
+      text-decoration: none;
+      color: #0077cc;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      padding: 8px;
+      border: 1px solid #ccc;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+  <h2>Ask Anything (SQL, Weather, YouTube, CSV Context)</h2>
+
+  <form id="queryForm">
+    <label for="query">Your question:</label><br>
+    <input type="text" id="query" name="query" required style="width: 70%; margin-top: 8px;"><br><br>
+    <button type="submit">Submit</button>
+  </form>
+
+  <h3>Response:</h3>
+  <div id="responseBox"></div>
+
+  <script>
+    document.getElementById('queryForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const query = document.getElementById('query').value;
+      const responseBox = document.getElementById('responseBox');
+      responseBox.innerText = 'Loading...';
+
+      try {
+        const response = await fetch(`/ask?q=${encodeURIComponent(query)}`);
+        const data = await response.json();
+
+        if (Array.isArray(data.answer)) {
+          if (data.answer.length > 0 && typeof data.answer[0] === 'object') {
+            let output = '';
+            if (data.answer[0].url) {
+              // YouTube Links
+              output = '<ul>';
+              data.answer.forEach(item => {
+                output += `<li><a href="${item.url}" target="_blank">${item.title}</a></li>`;
+              });
+              output += '</ul>';
+            } else {
+              // SQL Table
+              output = '<table><tr>';
+              Object.keys(data.answer[0]).forEach(key => {
+                output += `<th>${key}</th>`;
+              });
+              output += '</tr>';
+              data.answer.forEach(row => {
+                output += '<tr>';
+                Object.values(row).forEach(value => {
+                  output += `<td>${value}</td>`;
+                });
+                output += '</tr>';
+              });
+              output += '</table>';
+            }
+            responseBox.innerHTML = output;
+          } else {
+            responseBox.innerText = JSON.stringify(data.answer);
+          }
+        } else {
+          responseBox.innerText = data.answer || data.error || "No response returned.";
+        }
+      } catch (error) {
+        responseBox.innerText = "⚠️ Error fetching response.";
+      }
+    });
+  </script>
+</body>
+</html>
